@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>剧情动画候选库 · 已加密</title>
+  <style>
+    :root{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;--bg:#111619;--card:#1b2327;--line:#344149;--text:#edf3f5;--muted:#a9b5ba;--accent:#75aaa7;--danger:#e59b9b}
+    *{box-sizing:border-box}html,body{height:100%}body{margin:0;background:radial-gradient(circle at 20% 10%,#234147 0,transparent 34%),var(--bg);color:var(--text);display:grid;place-items:center;padding:24px}
+    .box{width:min(460px,100%);background:rgba(27,35,39,.94);border:1px solid var(--line);border-radius:22px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.38)}
+    .lock{font-size:34px;margin-bottom:12px}h1{margin:0 0 10px;font-size:27px}p{margin:0 0 20px;color:var(--muted);line-height:1.65;font-size:14px}form{display:grid;gap:12px}
+    input{width:100%;height:48px;border:1px solid var(--line);border-radius:12px;background:#111719;color:var(--text);padding:0 14px;font:inherit;outline:none}input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(117,170,167,.18)}
+    button{height:48px;border:0;border-radius:12px;background:var(--accent);color:#0d1718;font-weight:800;font:inherit;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.msg{min-height:22px;color:var(--danger);font-size:13px;margin-top:9px}.small{margin-top:18px;font-size:12px;color:#829097;line-height:1.55}
+    .spin{display:none;width:16px;height:16px;border:2px solid rgba(13,23,24,.35);border-top-color:#0d1718;border-radius:50%;animation:r .8s linear infinite;margin-right:8px;vertical-align:-3px}button.busy .spin{display:inline-block}@keyframes r{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <main class="box"><div class="lock">🔐</div><h1>剧情动画候选库</h1><p>页面主体已经加密。请输入密码后，浏览器会在本机完成密钥派生与解密；密码不会发送到服务器。</p>
+    <form id="unlockForm" autocomplete="off"><input id="pw" type="password" autocomplete="current-password" placeholder="输入访问密码" autofocus><button id="btn" type="submit"><span class="spin"></span><span id="btnText">解锁网页</span></button></form>
+    <div class="msg" id="msg"></div><div class="small">加密：PBKDF2-SHA-256（310,000 次迭代）＋ AES-256-GCM。观影标记仍保存在当前浏览器的本地存储中，不会上传到 GitHub。</div>
+  </main>
+  <script>
+    const $=s=>document.querySelector(s); let payloadCache=null;
+    function fromB64(s){const bin=atob(s),out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
+    async function getPayload(){if(payloadCache)return payloadCache;const meta=await fetch('payload-meta.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('meta');return r.json()});const parts=await Promise.all(meta.parts.map(p=>fetch(p,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('part');return r.text()})));payloadCache={...meta,data:parts.join('')};return payloadCache}
+    async function unlock(password){const payload=await getPayload(),enc=new TextEncoder();const material=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:fromB64(payload.salt),iterations:payload.iter,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64(payload.iv)},key,fromB64(payload.data));return new TextDecoder('utf-8').decode(plain)}
+    $('#unlockForm').addEventListener('submit',async e=>{e.preventDefault();const pw=$('#pw').value,msg=$('#msg'),btn=$('#btn');if(!pw){msg.textContent='请输入密码。';return}msg.textContent='';btn.disabled=true;btn.classList.add('busy');$('#btnText').textContent='正在解密…';try{const decryptedHtml=await unlock(pw);document.open();document.write(decryptedHtml);document.close()}catch(err){await new Promise(r=>setTimeout(r,650));msg.textContent='密码不正确，或加密数据加载失败。';$('#pw').select();btn.disabled=false;btn.classList.remove('busy');$('#btnText').textContent='解锁网页'}})
+  </script>
+</body>
+</html>
