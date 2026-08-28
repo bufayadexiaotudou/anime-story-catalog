@@ -1,0 +1,12 @@
+# 本机明文源文件：绝对不要提交到公开仓库
+/source.html
+/*.source.html
+/private/
+
+# 本机密钥/环境文件
+.env
+.env.*
+
+# 常见临时文件
+*.tmp
+*.bak
